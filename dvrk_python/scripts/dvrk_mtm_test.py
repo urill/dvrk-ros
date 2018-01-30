@@ -44,7 +44,7 @@ class example_application:
         print rospy.get_caller_id(), ' -> starting home'
         self.arm.home()
         # get current joints just to set size
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         # go to zero position
         goal.fill(0)
         self.arm.move_joint(goal, interpolate = True)
@@ -66,17 +66,17 @@ class example_application:
 
         print rospy.get_caller_id(), ' -> arm will go limp, hold it and press coag'
         self.wait_for_coag()
-        self.arm.set_wrench_body_force((0.0, 0.0, 0.0))
+        self.arm.servo_cf((0.0, 0.0, 0.0))
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, a force in body frame will be applied'
         self.wait_for_coag()
-        self.arm.set_wrench_body_orientation_absolute(False)
-        self.arm.set_wrench_body_force((0.0, 0.0, -2.0))
+        self.arm.servo_cf_body_orientation_absolute(False)
+        self.arm.servo_cf((0.0, 0.0, -2.0))
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, a force in world frame will be applied'
         self.wait_for_coag()
-        self.arm.set_wrench_body_orientation_absolute(True)
-        self.arm.set_wrench_body_force((0.0, 0.0, 2.0))
+        self.arm.servo_cf_body_orientation_absolute(True)
+        self.arm.servo_cf((0.0, 0.0, 2.0))
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, orientation will be locked'
         self.wait_for_coag()
@@ -84,7 +84,7 @@ class example_application:
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, force will be removed'
         self.wait_for_coag()
-        self.arm.set_wrench_body_force((0.0, 0.0, 0.0))
+        self.arm.servo_cf((0.0, 0.0, 0.0))
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, orientation will be unlocked'
         self.wait_for_coag()
@@ -92,7 +92,7 @@ class example_application:
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, arm will freeze in position'
         self.wait_for_coag()
-        self.arm.move(self.arm.get_desired_position())
+        self.arm.move(self.arm.servoed_cp())
 
         print rospy.get_caller_id(), ' -> press coag to end'
         self.wait_for_coag()
