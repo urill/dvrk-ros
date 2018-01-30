@@ -134,17 +134,17 @@ class arm(object):
         self.__goal_reached_event = threading.Event()
 
         # continuous publish from dvrk_bridge
-        self.__position_joint_desired = numpy.array(0, dtype = numpy.float)
-        self.__effort_joint_desired = numpy.array(0, dtype = numpy.float)
-        self.__position_cartesian_desired = PyKDL.Frame()
-        self.__position_cartesian_local_desired = PyKDL.Frame()
-        self.__position_joint_current = numpy.array(0, dtype = numpy.float)
-        self.__velocity_joint_current = numpy.array(0, dtype = numpy.float)
-        self.__effort_joint_current = numpy.array(0, dtype = numpy.float)
-        self.__position_cartesian_current = PyKDL.Frame()
-        self.__position_cartesian_local_current = PyKDL.Frame()
-        self.__twist_body_current = numpy.zeros(6, dtype = numpy.float)
-        self.__wrench_body_current = numpy.zeros(6, dtype = numpy.float)
+        self.__servoed_jp = numpy.array(0, dtype = numpy.float)
+        self.__servoed_jf = numpy.array(0, dtype = numpy.float)
+        self.__servoed_cp = PyKDL.Frame()
+        self.__servoed_cp_local = PyKDL.Frame()
+        self.__measured_jp = numpy.array(0, dtype = numpy.float)
+        self.__measured_jv = numpy.array(0, dtype = numpy.float)
+        self.__measured_jf = numpy.array(0, dtype = numpy.float)
+        self.__measured_cp = PyKDL.Frame()
+        self.__measured_cp_local = PyKDL.Frame()
+        self.__measured_cv = numpy.zeros(6, dtype = numpy.float)
+        self.__measured_cf = numpy.zeros(6, dtype = numpy.float)
         self.__jacobian_spatial = numpy.ndarray(0, dtype = numpy.float)
         self.__jacobian_body = numpy.ndarray(0, dtype = numpy.float)
 
@@ -157,42 +157,42 @@ class arm(object):
         self.__set_arm_desired_state_pub = rospy.Publisher(self.__full_ros_namespace
                                                            + '/set_desired_state',
                                                            String, latch = True, queue_size = 1)
-        self.__set_position_joint_pub = rospy.Publisher(self.__full_ros_namespace
-                                                        + '/set_position_joint',
-                                                        JointState, latch = True, queue_size = 1)
-        self.__set_position_goal_joint_pub = rospy.Publisher(self.__full_ros_namespace
-                                                             + '/set_position_goal_joint',
-                                                             JointState, latch = True, queue_size = 1)
-        self.__set_position_cartesian_pub = rospy.Publisher(self.__full_ros_namespace
-                                                            + '/set_position_cartesian',
-                                                            Pose, latch = True, queue_size = 1)
-        self.__set_position_goal_cartesian_pub = rospy.Publisher(self.__full_ros_namespace
-                                                                 + '/set_position_goal_cartesian',
-                                                                 Pose, latch = True, queue_size = 1)
-        self.__set_effort_joint_pub = rospy.Publisher(self.__full_ros_namespace
-                                                      + '/set_effort_joint',
-                                                      JointState, latch = True, queue_size = 1)
-        self.__set_wrench_body_pub = rospy.Publisher(self.__full_ros_namespace
-                                                     + '/set_wrench_body',
-                                                     Wrench, latch = True, queue_size = 1)
-        self.__set_wrench_body_orientation_absolute_pub = rospy.Publisher(self.__full_ros_namespace
-                                                                          + '/set_wrench_body_orientation_absolute',
-                                                                          Bool, latch = True, queue_size = 1)
-        self.__set_wrench_spatial_pub = rospy.Publisher(self.__full_ros_namespace
-                                                        + '/set_wrench_spatial',
-                                                        Wrench, latch = True, queue_size = 1)
+        self.__servo_jp_pub = rospy.Publisher(self.__full_ros_namespace
+                                              + '/servo_jp',
+                                              JointState, latch = True, queue_size = 1)
+        self.__move_jp_pub = rospy.Publisher(self.__full_ros_namespace
+                                             + '/move_jp',
+                                             JointState, latch = True, queue_size = 1)
+        self.__servo_cp_pub = rospy.Publisher(self.__full_ros_namespace
+                                              + '/servo_cp',
+                                              Pose, latch = True, queue_size = 1)
+        self.__move_cp_pub = rospy.Publisher(self.__full_ros_namespace
+                                             + '/move_cp',
+                                             Pose, latch = True, queue_size = 1)
+        self.__servo_jf_pub = rospy.Publisher(self.__full_ros_namespace
+                                              + '/servo_jf',
+                                              JointState, latch = True, queue_size = 1)
+        self.__servo_cf_body_pub = rospy.Publisher(self.__full_ros_namespace
+                                                   + '/servo_cf',
+                                                   Wrench, latch = True, queue_size = 1)
+        self.__servo_cf_orientation_absolute_pub = rospy.Publisher(self.__full_ros_namespace
+                                                                   + '/set_wrench_body_orientation_absolute',
+                                                                   Bool, latch = True, queue_size = 1)
+        self.__servo_cf_spatial_pub = rospy.Publisher(self.__full_ros_namespace
+                                                      + '/servo_cf',
+                                                      Wrench, latch = True, queue_size = 1)
         self.__set_gravity_compensation_pub = rospy.Publisher(self.__full_ros_namespace
                                                               + '/set_gravity_compensation',
                                                               Bool, latch = True, queue_size = 1)
         self.__pub_list = [self.__set_arm_desired_state_pub,
-                           self.__set_position_joint_pub,
-                           self.__set_position_goal_joint_pub,
-                           self.__set_position_cartesian_pub,
-                           self.__set_position_goal_cartesian_pub,
-                           self.__set_effort_joint_pub,
-                           self.__set_wrench_body_pub,
-                           self.__set_wrench_body_orientation_absolute_pub,
-                           self.__set_wrench_spatial_pub,
+                           self.__servo_jp_pub,
+                           self.__move_jp_pub,
+                           self.__servo_cp_pub,
+                           self.__move_cp_pub,
+                           self.__servo_jf_pub,
+                           self.__servo_cf_body_pub,
+                           self.__servo_cf_orientation_absolute_pub,
+                           self.__servo_cf_spatial_pub,
                            self.__set_gravity_compensation_pub]
         # subscribers
         self.__sub_list = [rospy.Subscriber(self.__full_ros_namespace + '/current_state',
@@ -201,22 +201,22 @@ class arm(object):
                                           String, self.__arm_desired_state_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/goal_reached',
                                           Bool, self.__goal_reached_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/state_joint_desired',
-                                          JointState, self.__state_joint_desired_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_desired',
-                                          PoseStamped, self.__position_cartesian_desired_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_local_desired',
-                                          PoseStamped, self.__position_cartesian_local_desired_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/state_joint_current',
-                                          JointState, self.__state_joint_current_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_current',
-                                          PoseStamped, self.__position_cartesian_current_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_local_current',
-                                          PoseStamped, self.__position_cartesian_local_current_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/twist_body_current',
-                                          TwistStamped, self.__twist_body_current_cb),
-                           rospy.Subscriber(self.__full_ros_namespace + '/wrench_body_current',
-                                          WrenchStamped, self.__wrench_body_current_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/servoed_js',
+                                          JointState, self.__servoed_js_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/servoed_cp',
+                                          PoseStamped, self.__servoed_cp_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/local/servoed_cp',
+                                          PoseStamped, self.__servoed_cp_local_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/measured_js',
+                                          JointState, self.__measured_js_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/measured_cp',
+                                          PoseStamped, self.__measured_cp_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/local/measured_cp',
+                                          PoseStamped, self.__measured_cp_local_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/measured_cv',
+                                          TwistStamped, self.__measured_cv_cb),
+                           rospy.Subscriber(self.__full_ros_namespace + '/measured_cf',
+                                          WrenchStamped, self.__measured_cf_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/jacobian_spatial',
                                           Float64MultiArray, self.__jacobian_spatial_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/jacobian_body',
@@ -252,78 +252,78 @@ class arm(object):
         self.__goal_reached_event.set()
 
 
-    def __state_joint_desired_cb(self, data):
+    def __servoed_js_cb(self, data):
         """Callback for the joint desired position.
 
         :param data: the `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_desired"""
-        self.__position_joint_desired.resize(len(data.position))
-        self.__effort_joint_desired.resize(len(data.effort))
-        self.__position_joint_desired.flat[:] = data.position
-        self.__effort_joint_desired.flat[:] = data.effort
+        self.__servoed_jp.resize(len(data.position))
+        self.__servoed_jf.resize(len(data.effort))
+        self.__servoed_jp.flat[:] = data.position
+        self.__servoed_jf.flat[:] = data.effort
 
 
-    def __position_cartesian_desired_cb(self, data):
+    def __servoed_cp_cb(self, data):
         """Callback for the cartesian desired position.
 
         :param data: the cartesian position desired"""
-        self.__position_cartesian_desired = posemath.fromMsg(data.pose)
+        self.__servoed_cp = posemath.fromMsg(data.pose)
 
 
-    def __position_cartesian_local_desired_cb(self, data):
+    def __servoed_cp_local_cb(self, data):
         """Callback for the cartesian desired position.
 
         :param data: the cartesian position desired"""
-        self.__position_cartesian_local_desired = posemath.fromMsg(data.pose)
+        self.__servoed_cp_local = posemath.fromMsg(data.pose)
 
 
-    def __state_joint_current_cb(self, data):
+    def __measured_js_cb(self, data):
         """Callback for the current joint position.
 
         :param data: the `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_current"""
-        self.__position_joint_current.resize(len(data.position))
-        self.__velocity_joint_current.resize(len(data.velocity))
-        self.__effort_joint_current.resize(len(data.effort))
-        self.__position_joint_current.flat[:] = data.position
-        self.__velocity_joint_current.flat[:] = data.velocity
-        self.__effort_joint_current.flat[:] = data.effort
+        self.__measured_jp.resize(len(data.position))
+        self.__measured_jv.resize(len(data.velocity))
+        self.__measured_jf.resize(len(data.effort))
+        self.__measured_jp.flat[:] = data.position
+        self.__measured_jv.flat[:] = data.velocity
+        self.__measured_jf.flat[:] = data.effort
 
 
-    def __position_cartesian_current_cb(self, data):
+    def __measured_cp_cb(self, data):
         """Callback for the current cartesian position.
 
         :param data: The cartesian position current."""
-        self.__position_cartesian_current = posemath.fromMsg(data.pose)
+        self.__measured_cp = posemath.fromMsg(data.pose)
 
 
-    def __position_cartesian_local_current_cb(self, data):
+    def __measured_cp_local_cb(self, data):
         """Callback for the current cartesian position.
 
         :param data: The cartesian position current."""
-        self.__position_cartesian_local_current = posemath.fromMsg(data.pose)
+        self.__measured_cp_local = posemath.fromMsg(data.pose)
 
 
-    def __twist_body_current_cb(self, data):
+    def __measured_cv_cb(self, data):
         """Callback for the current twist in body frame.
 
         :param data: Twist."""
-        self.__twist_body_current[0] = data.twist.linear.x
-        self.__twist_body_current[1] = data.twist.linear.y
-        self.__twist_body_current[2] = data.twist.linear.z
-        self.__twist_body_current[3] = data.twist.angular.x
-        self.__twist_body_current[4] = data.twist.angular.y
-        self.__twist_body_current[5] = data.twist.angular.z
+        self.__measured_cv[0] = data.twist.linear.x
+        self.__measured_cv[1] = data.twist.linear.y
+        self.__measured_cv[2] = data.twist.linear.z
+        self.__measured_cv[3] = data.twist.angular.x
+        self.__measured_cv[4] = data.twist.angular.y
+        self.__measured_cv[5] = data.twist.angular.z
 
 
-    def __wrench_body_current_cb(self, data):
+    def __measured_cf_cb(self, data):
         """Callback for the current wrench in body frame.
 
         :param data: Wrench."""
-        self.__wrench_body_current[0] = data.wrench.force.x
-        self.__wrench_body_current[1] = data.wrench.force.y
-        self.__wrench_body_current[2] = data.wrench.force.z
-        self.__wrench_body_current[3] = data.wrench.torque.x
-        self.__wrench_body_current[4] = data.wrench.torque.y
-        self.__wrench_body_current[5] = data.wrench.torque.z
+        self.__measured_cf[0] = data.wrench.force.x
+        self.__measured_cf[1] = data.wrench.force.y
+        self.__measured_cf[2] = data.wrench.force.z
+        self.__measured_cf[3] = data.wrench.torque.x
+        self.__measured_cf[4] = data.wrench.torque.y
+        self.__measured_cf[5] = data.wrench.torque.z
 
     def __jacobian_spatial_cb(self, data):
         """Callback for the Jacobian in spatial frame.
@@ -403,33 +403,33 @@ class arm(object):
         return self.__arm_desired_state
 
 
-    def get_current_position(self):
+    def measured_cp(self):
         """Get the :ref:`current cartesian position <currentvdesired>` of the arm.
 
         :returns: the current position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_current
+        return self.__measured_cp
 
 
-    def get_current_position_local(self):
+    def measured_cp_local(self):
         """Get the :ref:`current cartesian position <currentvdesired>` of the arm.
 
         :returns: the current position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_local_current
+        return self.__measured_cp_local
 
 
-    def get_current_twist_body(self):
+    def measured_cv(self):
         """Get the current cartesian velocity of the arm.  This
         is based on the body jacobian, both linear and angular are
         rotated to be defined in base frame.
 
         :returns: the current position of the arm in cartesian space
         :rtype: geometry_msgs.TwistStamped"""
-        return self.__twist_body_current
+        return self.__measured_cv
 
 
-    def get_current_wrench_body(self):
+    def measured_cf_body(self):
         """Get the current cartesian force applied on arm.  This is
         based on the body jacobian, both linear and angular are
         rotated to be defined in base frame if the flag
@@ -438,25 +438,25 @@ class arm(object):
 
         :returns: the current force applied to the arm in cartesian space
         :rtype: geometry_msgs.WrenchStamped"""
-        return self.__wrench_body_current
+        return self.__measured_cf
 
 
-    def get_current_joint_position(self):
+    def measured_jp(self):
         """Get the :ref:`current joint position <currentvdesired>` of
         the arm.
 
         :returns: the current position of the arm in joint space
         :rtype: `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_"""
-        return self.__position_joint_current
+        return self.__measured_jp
 
 
-    def get_current_joint_velocity(self):
+    def measured_jv(self):
         """Get the :ref:`current joint velocity <currentvdesired>` of
         the arm.
 
         :returns: the current position of the arm in joint space
         :rtype: `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_"""
-        return self.__velocity_joint_current
+        return self.__measured_jv
 
 
     def get_current_joint_effort(self):
@@ -465,7 +465,7 @@ class arm(object):
 
         :returns: the current position of the arm in joint space
         :rtype: `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_"""
-        return self.__effort_joint_current
+        return self.__measured_jf
 
     def get_jacobian_spatial(self):
         """Get the :ref:`jacobian spatial` of the arm.
@@ -481,38 +481,38 @@ class arm(object):
         :rtype: `numpy.ndarray <https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html>`_"""
         return self.__jacobian_body
 
-    def get_desired_position(self):
+    def servoed_cp(self):
         """Get the :ref:`desired cartesian position <currentvdesired>` of the arm.
 
         :returns: the desired position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_desired
+        return self.__servoed_cp
 
 
-    def get_desired_position_local(self):
+    def servoed_cp_local(self):
         """Get the :ref:`desired cartesian position <currentvdesired>` of the arm.
 
         :returns: the desired position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_local_desired
+        return self.__servoed_cp_local
 
 
-    def get_desired_joint_position(self):
+    def servoed_jp(self):
         """Get the :ref:`desired joint position <currentvdesired>` of
         the arm.
 
         :returns: the desired position of the arm in joint space
         :rtype: `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_"""
-        return self.__position_joint_desired
+        return self.__servoed_jp
 
 
-    def get_desired_joint_effort(self):
+    def servoed_jf(self):
         """Get the :ref:`desired joint effort <currentvdesired>` of
         the arm.
 
         :returns: the desired effort of the arm in joint space
         :rtype: `JointState <http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html>`_"""
-        return self.__effort_joint_desired
+        return self.__servoed_jf
 
 
     def get_joint_number(self):
@@ -520,7 +520,7 @@ class arm(object):
 
         :returns: the number of joints on the specified arm
         :rtype: int"""
-        joint_num = len(self.__position_joint_desired)
+        joint_num = len(self.__servoed_jp)
         return joint_num
 
 
@@ -594,7 +594,7 @@ class arm(object):
         :param delta_frame: the incremental `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_ based upon the current position
         :param interpolate: see  :ref:`interpolate <interpolate>`"""
         # add the incremental move to the current position, to get the ending frame
-        end_frame = delta_frame * self.__position_cartesian_desired
+        end_frame = delta_frame * self.__servoed_cp
         return self.__move_frame(end_frame, interpolate, blocking)
 
 
@@ -619,7 +619,7 @@ class arm(object):
         :param abs_translation: the absolute translation you want to make based on the current position, this is in terms of a  `PyKDL.Vector <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_
         :param interpolate: see  :ref:`interpolate <interpolate>`"""
         # convert into a Frame
-        abs_rotation = self.__position_cartesian_desired.M
+        abs_rotation = self.__servoed_cp.M
         abs_frame = PyKDL.Frame(abs_rotation, abs_translation)
         return self.__move_frame(abs_frame, interpolate, blocking)
 
@@ -630,7 +630,7 @@ class arm(object):
         :param abs_rotation: the absolute `PyKDL.Rotation <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_
         :param interpolate: see  :ref:`interpolate <interpolate>`"""
         # convert into a Frame
-        abs_vector = self.__position_cartesian_desired.p
+        abs_vector = self.__servoed_cp.p
         abs_frame = PyKDL.Frame(abs_rotation, abs_vector)
         return self.__move_frame(abs_frame, interpolate, blocking)
 
@@ -656,7 +656,7 @@ class arm(object):
         # set in position cartesian mode
         end_position = posemath.toMsg(end_frame)
         # go to that position directly
-        self.__set_position_cartesian_pub.publish(end_position)
+        self.__servo_cp_pub.publish(end_position)
         return True
 
 
@@ -672,7 +672,7 @@ class arm(object):
         if blocking:
             return self.__set_position_goal_cartesian_publish_and_wait(end_position)
         else:
-            self.__set_position_goal_cartesian_pub.publish(end_position)
+            self.__move_cp_pub.publish(end_position)
         return True
 
 
@@ -686,7 +686,7 @@ class arm(object):
         # the goal is originally not reached
         self.__goal_reached = False
         # recursively call this function until end is reached
-        self.__set_position_goal_cartesian_pub.publish(end_position)
+        self.__move_cp_pub.publish(end_position)
         self.__goal_reached_event.wait(20) # 1 minute at most
         if not self.__goal_reached:
             return False
@@ -706,7 +706,7 @@ class arm(object):
             print "delta_pos must be an array of size", self.get_joint_number()
             return False
 
-        abs_pos = numpy.array(self.__position_joint_desired)
+        abs_pos = numpy.array(self.__servoed_jp)
         abs_pos = abs_pos+ delta_pos
         return self.__move_joint(abs_pos, interpolate, blocking)
 
@@ -752,7 +752,7 @@ class arm(object):
                 print "all indices must be less than", self.get_joint_number()
                 return False
 
-        abs_pos = numpy.array(self.__position_joint_desired)
+        abs_pos = numpy.array(self.__servoed_jp)
         for i in range(len(indices)):
             abs_pos[indices[i]] = abs_pos[indices[i]] + delta_pos[i]
 
@@ -817,7 +817,7 @@ class arm(object):
                 print "all indices must be less than", self.get_joint_number()
                 return False
 
-        abs_pos_result = numpy.array(self.__position_joint_desired)
+        abs_pos_result = numpy.array(self.__servoed_jp)
         for i in range(len(indices)):
             abs_pos_result[indices[i]] = abs_pos[i]
 
@@ -844,7 +844,7 @@ class arm(object):
         # go to that position directly
         joint_state = JointState()
         joint_state.position[:] = end_joint.flat
-        self.__set_position_joint_pub.publish(joint_state)
+        self.__servo_jp_pub.publish(joint_state)
         return True
 
 
@@ -859,7 +859,7 @@ class arm(object):
         if blocking:
             return self.__set_position_goal_joint_publish_and_wait(joint_state)
         else:
-            self.__set_position_goal_joint_pub.publish(joint_state)
+            self.__move_jp_pub.publish(joint_state)
         return True
 
 
@@ -871,14 +871,14 @@ class arm(object):
         :rtype: Bool"""
         self.__goal_reached_event.clear()
         self.__goal_reached = False
-        self.__set_position_goal_joint_pub.publish(end_position)
+        self.__move_jp_pub.publish(end_position)
         self.__goal_reached_event.wait(20) # 1 minute at most
         if not self.__goal_reached:
             return False
         return True
 
 
-    def set_effort_joint(self, effort):
+    def servo_jf(self, effort):
         if ((not(type(effort) is numpy.ndarray))
             or (not(effort.dtype == numpy.float64))):
             print "effort must be an array of floats"
@@ -888,11 +888,11 @@ class arm(object):
             return False
         joint_state = JointState()
         joint_state.effort[:] = effort.flat
-        self.__set_effort_joint_pub.publish(joint_state)
+        self.__servo_jf_pub.publish(joint_state)
         return True
 
 
-    def set_wrench_spatial_force(self, force):
+    def servo_cf_spatial(self, force):
         """Apply a wrench with force only (spatial), torque is null
 
         :param force: the new force to set it to
@@ -904,17 +904,17 @@ class arm(object):
         w.torque.x = 0.0
         w.torque.y = 0.0
         w.torque.z = 0.0
-        self.__set_wrench_spatial_pub.publish(w)
+        self.__servo_cf_spatial_pub.publish(w)
 
 
-    def set_wrench_body_orientation_absolute(self, absolute):
+    def servo_cf_body_orientation_absolute(self, absolute):
         """Apply body wrench using body orientation (relative/False) or reference frame (absolute/True)"""
         m = Bool()
         m.data = absolute
-        self.__set_wrench_body_orientation_absolute_pub.publish(m)
+        self.__servo_cf_orientation_absolute_pub.publish(m)
 
 
-    def set_wrench_body_force(self, force):
+    def servo_cf(self, force):
         "Apply a wrench with force only (body), torque is null"
         w = Wrench()
         w.force.x = force[0]
@@ -923,7 +923,7 @@ class arm(object):
         w.torque.x = 0.0
         w.torque.y = 0.0
         w.torque.z = 0.0
-        self.__set_wrench_body_pub.publish(w)
+        self.__servo_cf_body_pub.publish(w)
 
 
     def set_gravity_compensation(self, gravity_compensation):

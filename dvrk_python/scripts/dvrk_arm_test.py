@@ -69,7 +69,7 @@ class example_application:
     def joint_goal(self):
         print rospy.get_caller_id(), ' -> starting joint goal'
         # get current position
-        initial_joint_position = numpy.copy(self.arm.get_current_joint_position())
+        initial_joint_position = numpy.copy(self.arm.measured_jp())
         print rospy.get_caller_id(), ' -> testing goal joint position for 2 joints of ', len(initial_joint_position)
         amplitude = math.radians(10.0)
         # create a new goal starting with current position
@@ -89,7 +89,7 @@ class example_application:
     # utility to position tool/camera deep enough before cartesian examples
     def prepare_cartesian(self):
         # make sure the camera is past the cannula and tool vertical
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         if ((self.arm.name() == 'PSM1') or (self.arm.name() == 'PSM2') or (self.arm.name() == 'PSM3') or (self.arm.name() == 'ECM')):
             # set in position joint mode
             goal[0] = 0.0

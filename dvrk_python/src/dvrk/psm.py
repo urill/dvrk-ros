@@ -22,25 +22,25 @@ class psm(arm):
         self._arm__init_arm(psm_name, ros_namespace)
 
         # jaw states
-        self.__position_jaw_desired = 0.0
-        self.__effort_jaw_desired = 0.0
-        self.__position_jaw_current = 0.0
-        self.__velocity_jaw_current = 0.0
-        self.__effort_jaw_current = 0.0
+        self.__servoed_jp_jaw = 0.0
+        self.__servoed_jf_jaw = 0.0
+        self.__measured_jp_jaw = 0.0
+        self.__measured_jv_jaw = 0.0
+        self.__measured_jf_jaw = 0.0
 
         # publishers
-        self.__set_position_jaw_pub = rospy.Publisher(self._arm__full_ros_namespace
-                                                      + '/set_position_jaw',
-                                                      JointState, latch = True, queue_size = 1)
-        self.__set_position_goal_jaw_pub = rospy.Publisher(self._arm__full_ros_namespace
-                                                           + '/set_position_goal_jaw',
-                                                           JointState, latch = True, queue_size = 1)
+        self.__servo_jp_jaw_pub = rospy.Publisher(self._arm__full_ros_namespace
+                                                  + '/servo_jp_jaw',
+                                                  JointState, latch = True, queue_size = 1)
+        self.__move_jp_jaw_pub = rospy.Publisher(self._arm__full_ros_namespace
+                                                 + '/move_jp_jaw',
+                                                 JointState, latch = True, queue_size = 1)
         self.__set_tool_present_pub = rospy.Publisher(self._arm__full_ros_namespace
                                                       + '/set_tool_present',
                                                       Bool, latch = True, queue_size = 1)
 
-        self._arm__pub_list.extend([self.__set_position_jaw_pub,
-                               self.__set_position_goal_jaw_pub,
+        self._arm__pub_list.extend([self.__servo_jp_jaw_pub,
+                               self.__move_jp_jaw_pub,
                                self.__set_tool_present_pub])
         # subscribers
         self._arm__sub_list.extend([
@@ -52,37 +52,37 @@ class psm(arm):
 
     def __state_jaw_desired_cb(self, data):
         if (len(data.position) == 1):
-            self.__position_jaw_desired = data.position[0]
-            self.__effort_jaw_desired = data.effort[0]
+            self.__servoed_jp_jaw = data.position[0]
+            self.__servoed_jf_jaw = data.effort[0]
 
 
     def __state_jaw_current_cb(self, data):
         if (len(data.position) == 1):
-            self.__position_jaw_current = data.position[0]
-            self.__velocity_jaw_current = data.velocity[0]
-            self.__effort_jaw_current = data.effort[0]
+            self.__measured_jp_jaw = data.position[0]
+            self.__measured_jv_jaw = data.velocity[0]
+            self.__measured_jf_jaw = data.effort[0]
 
 
-    def get_current_jaw_position(self):
+    def measured_jp_jaw(self):
         "get the current angle of the jaw"
-        return self.__position_jaw_current
+        return self.__measured_jp_jaw
 
-    def get_current_jaw_velocity(self):
+    def measured_jv_jaw(self):
         "get the current angular velocity of the jaw"
-        return self.__velocity_jaw_current
+        return self.__measured_jv_jaw
 
-    def get_current_jaw_effort(self):
+    def measured_jf_jaw(self):
         "get the current torque applied to the jaw"
-        return self.__effort_jaw_current
+        return self.__measured_jf_jaw
 
 
-    def get_desired_jaw_position(self):
+    def servoed_jp_jaw(self):
         "get the desired angle of the jaw"
-        return self.__position_jaw_desired
+        return self.__servoed_jp_jaw
 
-    def get_desired_jaw_effort(self):
+    def servoed_jf_jaw(self):
         "get the desired torque to be applied to the jaw"
-        return self.__effort_jaw_desired
+        return self.__servoed_jf_jaw
 
 
     def close_jaw(self, interpolate = True, blocking = True):
@@ -103,14 +103,14 @@ class psm(arm):
             if blocking:
                 self._arm__goal_reached_event.clear()
                 self._arm__goal_reached = False
-            self.__set_position_goal_jaw_pub.publish(joint_state)
+            self.__move_jp_jaw_pub.publish(joint_state)
             if blocking:
                 self._arm__goal_reached_event.wait(20)
                 if not self._arm__goal_reached:
                     return False
             return True
         else:
-            return self.__set_position_jaw_pub.publish(joint_state)
+            return self.__servo_jp_jaw_pub.publish(joint_state)
 
     def insert_tool(self, depth, interpolate = True, blocking = True):
         "insert the tool, by moving it to an absolute depth"
