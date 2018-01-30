@@ -644,6 +644,23 @@ void dvrk::add_topics_suj(mtsROSBridge & bridge,
             (arm_name + "-suj", "PositionCartesianLocalDesired",
              ros_namespace + "/position_cartesian_local_desired");
         break;
+    case dvrk_topics_version::crtk_alpha:
+        bridge.AddPublisherFromCommandRead<prmStateJoint, sensor_msgs::JointState>
+            (arm_name + "-suj", "GetStateJoint",
+             ros_namespace + "/measured_js");
+        bridge.AddPublisherFromCommandRead<prmPositionCartesianGet, geometry_msgs::TransformStamped>
+            (arm_name + "-suj", "PositionCartesianLocal",
+             ros_namespace + "/local/measured_cp");
+        bridge.AddPublisherFromCommandRead<prmPositionCartesianGet, geometry_msgs::TransformStamped>
+            (arm_name + "-suj", "PositionCartesianLocalDesired",
+             ros_namespace + "/local/servoed_cp");
+        bridge.AddPublisherFromCommandRead<prmPositionCartesianGet, geometry_msgs::TransformStamped>
+            (arm_name + "-suj", "PositionCartesian",
+             ros_namespace + "/measured_cp");
+        bridge.AddPublisherFromCommandRead<prmPositionCartesianGet, geometry_msgs::TransformStamped>
+            (arm_name + "-suj", "PositionCartesianDesired",
+             ros_namespace + "/measured_cp");
+        break;
     default:
         bridge.AddPublisherFromCommandRead<prmStateJoint, sensor_msgs::JointState>
             (arm_name + "-suj", "GetStateJoint",
