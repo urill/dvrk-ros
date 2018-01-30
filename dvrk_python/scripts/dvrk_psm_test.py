@@ -39,7 +39,7 @@ class example_application:
         print rospy.get_caller_id(), ' -> starting home'
         self.arm.home()
         # get current joints just to set size
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         # go to zero position, except for insert joint so we can't break tool in cannula
         goal.fill(0)
         goal[2] = 0.12
@@ -48,7 +48,7 @@ class example_application:
     # utility to position tool/camera deep enough before cartesian examples
     def prepare_cartesian(self):
         # make sure the camera is past the cannula and tool vertical
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         if ((self.arm.name() == 'PSM1') or (self.arm.name() == 'PSM2') or (self.arm.name() == 'PSM3') or (self.arm.name() == 'ECM')):
             # set in position joint mode
             goal[0] = 0.0
@@ -87,11 +87,11 @@ class example_application:
         self.prepare_cartesian()
 
         initial_cartesian_position = PyKDL.Frame()
-        initial_cartesian_position.p = self.arm.get_desired_position().p
-        initial_cartesian_position.M = self.arm.get_desired_position().M
+        initial_cartesian_position.p = self.arm.servoed_cp().p
+        initial_cartesian_position.M = self.arm.servoed_cp().M
         goal = PyKDL.Frame()
-        goal.p = self.arm.get_desired_position().p
-        goal.M = self.arm.get_desired_position().M
+        goal.p = self.arm.servoed_cp().p
+        goal.M = self.arm.servoed_cp().M
 
         # motion parameters
         amplitude = 0.05 # 5 cm

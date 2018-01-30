@@ -47,7 +47,7 @@ class example_application:
         print rospy.get_caller_id(), ' -> starting home'
         self.arm.home()
         # get current joints just to set size
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         # go to zero position
         goal.fill(0)
         self.arm.move_joint(goal, interpolate = True)
@@ -75,13 +75,13 @@ class example_application:
         print rospy.get_caller_id(), ' -> an horizontal plane will be created around the current position'
         self.wait_for_coag()
         # set gains in z direction
-        gains.PosStiffNeg.z = -200.0;
-        gains.PosStiffPos.z = -200.0;
-        gains.PosDampingNeg.z = -5.0;
-        gains.PosDampingPos.z = -5.0;
-        gains.ForcePosition.x = self.arm.get_current_position().p[0]
-        gains.ForcePosition.y = self.arm.get_current_position().p[1]
-        gains.ForcePosition.z = self.arm.get_current_position().p[2]
+        gains.PosStiffNeg.z = -200.0
+        gains.PosStiffPos.z = -200.0
+        gains.PosDampingNeg.z = -5.0
+        gains.PosDampingPos.z = -5.0
+        gains.ForcePosition.x = self.arm.measured_cp().p[0]
+        gains.ForcePosition.y = self.arm.measured_cp().p[1]
+        gains.ForcePosition.z = self.arm.measured_cp().p[2]
         self.set_gains_pub.publish(gains)
 
         print rospy.get_caller_id(), ' -> orientation will be locked'
@@ -92,59 +92,59 @@ class example_application:
         print rospy.get_caller_id(), ' -> MAKE SURE YOU HOLD THE MTM FIRST, this will accelerate your motions along the line!'
         self.wait_for_coag()
         # set gains in x, z directions for the line
-        gains.PosStiffNeg.x = -200.0;
-        gains.PosStiffPos.x = -200.0;
-        gains.PosDampingNeg.x = -5.0;
-        gains.PosDampingPos.x = -5.0;
-        gains.PosStiffNeg.z = -200.0;
-        gains.PosStiffPos.z = -200.0;
-        gains.PosDampingNeg.z = -5.0;
-        gains.PosDampingPos.z = -5.0;
+        gains.PosStiffNeg.x = -200.0
+        gains.PosStiffPos.x = -200.0
+        gains.PosDampingNeg.x = -5.0
+        gains.PosDampingPos.x = -5.0
+        gains.PosStiffNeg.z = -200.0
+        gains.PosStiffPos.z = -200.0
+        gains.PosDampingNeg.z = -5.0
+        gains.PosDampingPos.z = -5.0
         # NEGATIVE viscosity along the line
-        gains.PosDampingNeg.y = 5.0;
-        gains.PosDampingPos.y = 5.0;
+        gains.PosDampingNeg.y = 5.0
+        gains.PosDampingPos.y = 5.0
         # always start from current position to avoid jumps
-        gains.ForcePosition.x = self.arm.get_current_position().p[0]
-        gains.ForcePosition.y = self.arm.get_current_position().p[1]
-        gains.ForcePosition.z = self.arm.get_current_position().p[2]
+        gains.ForcePosition.x = self.arm.measured_cp().p[0]
+        gains.ForcePosition.y = self.arm.measured_cp().p[1]
+        gains.ForcePosition.z = self.arm.measured_cp().p[2]
         self.set_gains_pub.publish(gains)
 
         print rospy.get_caller_id(), ' -> a plane will be created perpendicular to the master gripper'
         self.wait_for_coag()
         # set gains in x, z directions for the line
-        gains.PosStiffNeg.x = 0.0;
-        gains.PosStiffPos.x = 0.0;
-        gains.PosDampingNeg.x = 0.0;
-        gains.PosDampingPos.x = 0.0;
-        gains.PosStiffNeg.y = 0.0;
-        gains.PosStiffPos.y = 0.0;
-        gains.PosDampingNeg.y = 0.0;
-        gains.PosDampingPos.y = 0.0;
-        gains.PosStiffNeg.z = -200.0;
-        gains.PosStiffPos.z = -200.0;
-        gains.PosDampingNeg.z = -5.0;
-        gains.PosDampingPos.z = -5.0;
+        gains.PosStiffNeg.x = 0.0
+        gains.PosStiffPos.x = 0.0
+        gains.PosDampingNeg.x = 0.0
+        gains.PosDampingPos.x = 0.0
+        gains.PosStiffNeg.y = 0.0
+        gains.PosStiffPos.y = 0.0
+        gains.PosDampingNeg.y = 0.0
+        gains.PosDampingPos.y = 0.0
+        gains.PosStiffNeg.z = -200.0
+        gains.PosStiffPos.z = -200.0
+        gains.PosDampingNeg.z = -5.0
+        gains.PosDampingPos.z = -5.0
 
-        stiffOri = -0.2;
-        dampOri = -0.01;
-        gains.OriStiffNeg.x = stiffOri;
-        gains.OriStiffPos.x = stiffOri;
-        gains.OriDampingNeg.x = dampOri;
-        gains.OriDampingPos.x = dampOri;
-        gains.OriStiffNeg.y = stiffOri;
-        gains.OriStiffPos.y = stiffOri;
-        gains.OriDampingNeg.y = dampOri;
-        gains.OriDampingPos.y = dampOri;
-        gains.OriStiffNeg.z = 0.0;
-        gains.OriStiffPos.z = 0.0;
-        gains.OriDampingNeg.z = 0.0;
-        gains.OriDampingPos.z = 0.0;
+        stiffOri = -0.2
+        dampOri = -0.01
+        gains.OriStiffNeg.x = stiffOri
+        gains.OriStiffPos.x = stiffOri
+        gains.OriDampingNeg.x = dampOri
+        gains.OriDampingPos.x = dampOri
+        gains.OriStiffNeg.y = stiffOri
+        gains.OriStiffPos.y = stiffOri
+        gains.OriDampingNeg.y = dampOri
+        gains.OriDampingPos.y = dampOri
+        gains.OriStiffNeg.z = 0.0
+        gains.OriStiffPos.z = 0.0
+        gains.OriDampingNeg.z = 0.0
+        gains.OriDampingPos.z = 0.0
 
         # always start from current position to avoid jumps
-        gains.ForcePosition.x = self.arm.get_current_position().p[0]
-        gains.ForcePosition.y = self.arm.get_current_position().p[1]
-        gains.ForcePosition.z = self.arm.get_current_position().p[2]
-        orientationQuaternion = self.arm.get_current_position().M.GetQuaternion()
+        gains.ForcePosition.x = self.arm.measured_cp().p[0]
+        gains.ForcePosition.y = self.arm.measured_cp().p[1]
+        gains.ForcePosition.z = self.arm.measured_cp().p[2]
+        orientationQuaternion = self.arm.measured_cp().M.GetQuaternion()
         gains.ForceOrientation.x = orientationQuaternion[0]
         gains.ForceOrientation.y = orientationQuaternion[1]
         gains.ForceOrientation.z = orientationQuaternion[2]
@@ -158,7 +158,7 @@ class example_application:
 
         print rospy.get_caller_id(), ' -> keep holding arm, press coag, arm will freeze in position'
         self.wait_for_coag()
-        self.arm.move(self.arm.get_desired_position())
+        self.arm.move(self.arm.servoed_cp())
 
         print rospy.get_caller_id(), ' -> press coag to end'
         self.wait_for_coag()

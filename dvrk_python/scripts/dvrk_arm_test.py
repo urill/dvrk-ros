@@ -39,7 +39,7 @@ class example_application:
         print rospy.get_caller_id(), ' -> starting home'
         self.arm.home()
         # get current joints just to set size
-        goal = numpy.copy(self.arm.get_current_joint_position())
+        goal = numpy.copy(self.arm.measured_jp())
         # go to zero position, for PSM and ECM make sure 3rd joint is past cannula
         goal.fill(0)
         if ((self.arm.name() == 'PSM1') or (self.arm.name() == 'PSM2') or (self.arm.name() == 'PSM3') or (self.arm.name() == 'ECM')):
@@ -50,7 +50,7 @@ class example_application:
     def joint_direct(self):
         print rospy.get_caller_id(), ' -> starting joint direct'
         # get current position
-        initial_joint_position = numpy.copy(self.arm.get_current_joint_position())
+        initial_joint_position = numpy.copy(self.arm.measured_jp())
         print rospy.get_caller_id(), ' -> testing direct joint position for 2 joints of ', len(initial_joint_position)
         amplitude = math.radians(10.0) # +/- 10 degrees
         duration = 5  # seconds
@@ -104,11 +104,11 @@ class example_application:
 
         # create a new goal starting with current position
         initial_cartesian_position = PyKDL.Frame()
-        initial_cartesian_position.p = self.arm.get_desired_position().p
-        initial_cartesian_position.M = self.arm.get_desired_position().M
+        initial_cartesian_position.p = self.arm.servoed_cp().p
+        initial_cartesian_position.M = self.arm.servoed_cp().M
         goal = PyKDL.Frame()
-        goal.p = self.arm.get_desired_position().p
-        goal.M = self.arm.get_desired_position().M
+        goal.p = self.arm.servoed_cp().p
+        goal.M = self.arm.servoed_cp().M
         # motion parameters
         amplitude = 0.05 # 5 cm
         duration = 5  # 5 seconds
@@ -121,9 +121,9 @@ class example_application:
             # check error on kinematics, compare to desired on arm.
             # to test tracking error we would compare to
             # current_position
-            errorX = goal.p[0] - self.arm.get_desired_position().p[0]
-            errorY = goal.p[1] - self.arm.get_desired_position().p[1]
-            errorZ = goal.p[2] - self.arm.get_desired_position().p[2]
+            errorX = goal.p[0] - self.arm.servoed_cp().p[0]
+            errorY = goal.p[1] - self.arm.servoed_cp().p[1]
+            errorZ = goal.p[2] - self.arm.servoed_cp().p[2]
             error = math.sqrt(errorX * errorX + errorY * errorY + errorZ * errorZ)
             if error > 0.002: # 2 mm
                 print 'Inverse kinematic error in position [', i, ']: ', error
@@ -137,11 +137,11 @@ class example_application:
 
         # create a new goal starting with current position
         initial_cartesian_position = PyKDL.Frame()
-        initial_cartesian_position.p = self.arm.get_desired_position().p
-        initial_cartesian_position.M = self.arm.get_desired_position().M
+        initial_cartesian_position.p = self.arm.servoed_cp().p
+        initial_cartesian_position.M = self.arm.servoed_cp().M
         goal = PyKDL.Frame()
-        goal.p = self.arm.get_desired_position().p
-        goal.M = self.arm.get_desired_position().M
+        goal.p = self.arm.servoed_cp().p
+        goal.M = self.arm.servoed_cp().M
 
         # motion parameters
         amplitude = 0.05 # 5 cm

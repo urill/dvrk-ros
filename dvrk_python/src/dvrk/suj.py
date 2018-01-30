@@ -35,23 +35,23 @@ class suj(object):
         self.__ros_namespace = ros_namespace
 
         # continuous publish from dvrk_bridge
-        self.__position_cartesian_desired = PyKDL.Frame()
-        self.__position_cartesian_current = PyKDL.Frame()
-        self.__position_cartesian_local_desired = PyKDL.Frame()
-        self.__position_cartesian_local_current = PyKDL.Frame()
+        self.__servoed_cp = PyKDL.Frame()
+        self.__measured_cp = PyKDL.Frame()
+        self.__servoed_cp_local = PyKDL.Frame()
+        self.__measured_cp_local = PyKDL.Frame()
 
         # publishers
         self.__full_ros_namespace = self.__ros_namespace + self.__arm_name
 
         # subscribers
-        rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_desired',
-                         PoseStamped, self.__position_cartesian_desired_cb)
-        rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_current',
-                         PoseStamped, self.__position_cartesian_current_cb)
-        rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_local_desired',
-                         PoseStamped, self.__position_cartesian_local_desired_cb)
-        rospy.Subscriber(self.__full_ros_namespace + '/position_cartesian_local_current',
-                         PoseStamped, self.__position_cartesian_local_current_cb)
+        rospy.Subscriber(self.__full_ros_namespace + '/servoed_cp',
+                         PoseStamped, self.__servoed_cp_cb)
+        rospy.Subscriber(self.__full_ros_namespace + '/measured_cp',
+                         PoseStamped, self.__measured_cp_cb)
+        rospy.Subscriber(self.__full_ros_namespace + '/local/servoed_cp',
+                         PoseStamped, self.__servoed_cp_local_cb)
+        rospy.Subscriber(self.__full_ros_namespace + '/local/measured_cp',
+                         PoseStamped, self.__measured_cp_local_cb)
 
         # create node
         if not rospy.get_node_uri():
@@ -60,54 +60,54 @@ class suj(object):
             rospy.logdebug(rospy.get_caller_id() + ' -> ROS already initialized')
 
 
-    def __position_cartesian_desired_cb(self, data):
+    def __servoed_cp_cb(self, data):
         """Callback for the cartesian desired position.
 
         :param data: the cartesian position desired"""
-        self.__position_cartesian_desired = posemath.fromMsg(data.pose)
+        self.__servoed_cp = posemath.fromMsg(data.pose)
 
-    def __position_cartesian_current_cb(self, data):
+    def __measured_cp_cb(self, data):
         """Callback for the current cartesian position.
 
         :param data: The cartesian position current."""
-        self.__position_cartesian_current = posemath.fromMsg(data.pose)
+        self.__measured_cp = posemath.fromMsg(data.pose)
 
-    def __position_cartesian_local_desired_cb(self, data):
+    def __servoed_cp_local_cb(self, data):
         """Callback for the cartesian_local desired position.
 
         :param data: the cartesian_local position desired"""
-        self.__position_cartesian_local_desired = posemath.fromMsg(data.pose)
+        self.__servoed_cp_local = posemath.fromMsg(data.pose)
 
-    def __position_cartesian_local_current_cb(self, data):
+    def __measured_cp_local_cb(self, data):
         """Callback for the current cartesian_local position.
 
         :param data: The cartesian_local position current."""
-        self.__position_cartesian_local_current = posemath.fromMsg(data.pose)
+        self.__measured_cp_local = posemath.fromMsg(data.pose)
 
-    def get_current_position(self):
+    def measured_cp(self):
         """Get the :ref:`current cartesian position <currentvdesired>` of the arm.
 
         :returns: the current position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_current
+        return self.__measured_cp
 
-    def get_desired_position(self):
+    def servoed_cp(self):
         """Get the :ref:`desired cartesian position <currentvdesired>` of the arm.
 
         :returns: the desired position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_desired
+        return self.__servoed_cp
 
-    def get_current_position_local(self):
+    def measured_cp_local(self):
         """Get the :ref:`current cartesian position <currentvdesired>` of the arm.
 
         :returns: the current position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_local_current
+        return self.__measured_cp_local
 
-    def get_desired_position_local(self):
+    def servoed_cp_local(self):
         """Get the :ref:`desired cartesian position <currentvdesired>` of the arm.
 
         :returns: the desired position of the arm in cartesian space
         :rtype: `PyKDL.Frame <http://docs.ros.org/diamondback/api/kdl/html/python/geometric_primitives.html>`_"""
-        return self.__position_cartesian_local_desired
+        return self.__servoed_cp_local
