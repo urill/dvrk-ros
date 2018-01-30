@@ -87,7 +87,7 @@ import PyKDL
 from tf import transformations
 from tf_conversions import posemath
 from std_msgs.msg import String, Bool, Float32, Empty, Float64MultiArray
-from geometry_msgs.msg import Pose, PoseStamped, Vector3, Quaternion, Wrench, WrenchStamped, TwistStamped
+from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, WrenchStamped, TwistStamped
 from sensor_msgs.msg import JointState, Joy
 
 # from code import InteractiveConsole
@@ -165,22 +165,22 @@ class arm(object):
                                              JointState, latch = True, queue_size = 1)
         self.__servo_cp_pub = rospy.Publisher(self.__full_ros_namespace
                                               + '/servo_cp',
-                                              Pose, latch = True, queue_size = 1)
+                                              TransformStamped, latch = True, queue_size = 1)
         self.__move_cp_pub = rospy.Publisher(self.__full_ros_namespace
                                              + '/move_cp',
-                                             Pose, latch = True, queue_size = 1)
+                                             TransformStamped, latch = True, queue_size = 1)
         self.__servo_jf_pub = rospy.Publisher(self.__full_ros_namespace
                                               + '/servo_jf',
                                               JointState, latch = True, queue_size = 1)
         self.__servo_cf_body_pub = rospy.Publisher(self.__full_ros_namespace
                                                    + '/servo_cf',
-                                                   Wrench, latch = True, queue_size = 1)
+                                                   WrenchStamped, latch = True, queue_size = 1)
         self.__servo_cf_orientation_absolute_pub = rospy.Publisher(self.__full_ros_namespace
                                                                    + '/set_wrench_body_orientation_absolute',
                                                                    Bool, latch = True, queue_size = 1)
         self.__servo_cf_spatial_pub = rospy.Publisher(self.__full_ros_namespace
                                                       + '/servo_cf',
-                                                      Wrench, latch = True, queue_size = 1)
+                                                      WrenchStamped, latch = True, queue_size = 1)
         self.__set_gravity_compensation_pub = rospy.Publisher(self.__full_ros_namespace
                                                               + '/set_gravity_compensation',
                                                               Bool, latch = True, queue_size = 1)
@@ -204,15 +204,15 @@ class arm(object):
                            rospy.Subscriber(self.__full_ros_namespace + '/servoed_js',
                                           JointState, self.__servoed_js_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/servoed_cp',
-                                          PoseStamped, self.__servoed_cp_cb),
+                                          TransformStamped, self.__servoed_cp_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/local/servoed_cp',
-                                          PoseStamped, self.__servoed_cp_local_cb),
+                                          TransformStamped, self.__servoed_cp_local_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/measured_js',
                                           JointState, self.__measured_js_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/measured_cp',
-                                          PoseStamped, self.__measured_cp_cb),
+                                          TransformStamped, self.__measured_cp_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/local/measured_cp',
-                                          PoseStamped, self.__measured_cp_local_cb),
+                                          TransformStamped, self.__measured_cp_local_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/measured_cv',
                                           TwistStamped, self.__measured_cv_cb),
                            rospy.Subscriber(self.__full_ros_namespace + '/measured_cf',
@@ -266,14 +266,14 @@ class arm(object):
         """Callback for the cartesian desired position.
 
         :param data: the cartesian position desired"""
-        self.__servoed_cp = posemath.fromMsg(data.pose)
+        self.__servoed_cp = TransformFromMsg(data.transform)
 
 
     def __servoed_cp_local_cb(self, data):
         """Callback for the cartesian desired position.
 
         :param data: the cartesian position desired"""
-        self.__servoed_cp_local = posemath.fromMsg(data.pose)
+        self.__servoed_cp_local = TransformFromMsg(data.transform)
 
 
     def __measured_js_cb(self, data):
@@ -292,14 +292,14 @@ class arm(object):
         """Callback for the current cartesian position.
 
         :param data: The cartesian position current."""
-        self.__measured_cp = posemath.fromMsg(data.pose)
+        self.__measured_cp = TransformFromMsg(data.transform)
 
 
     def __measured_cp_local_cb(self, data):
         """Callback for the current cartesian position.
 
         :param data: The cartesian position current."""
-        self.__measured_cp_local = posemath.fromMsg(data.pose)
+        self.__measured_cp_local = TransformFromMsg(data.transform)
 
 
     def __measured_cv_cb(self, data):
@@ -654,7 +654,7 @@ class arm(object):
         :returns: true if you had successfully move
         :rtype: Bool"""
         # set in position cartesian mode
-        end_position = posemath.toMsg(end_frame)
+        end_position = TransformToMsg(end_frame)
         # go to that position directly
         self.__servo_cp_pub.publish(end_position)
         return True
@@ -667,7 +667,7 @@ class arm(object):
         :returns: true if you had succesfully move
         :rtype: Bool"""
         # set in position cartesian mode
-        end_position= posemath.toMsg(end_frame)
+        end_position= TransformToMsg(end_frame)
         # go to that position by goal
         if blocking:
             return self.__set_position_goal_cartesian_publish_and_wait(end_position)
@@ -897,13 +897,13 @@ class arm(object):
 
         :param force: the new force to set it to
         """
-        w = Wrench()
-        w.force.x = force[0]
-        w.force.y = force[1]
-        w.force.z = force[2]
-        w.torque.x = 0.0
-        w.torque.y = 0.0
-        w.torque.z = 0.0
+        w = WrenchStamped()
+        w.wrench.force.x = force[0]
+        w.wrench.force.y = force[1]
+        w.wrench.force.z = force[2]
+        w.wrench.torque.x = 0.0
+        w.wrench.torque.y = 0.0
+        w.wrench.torque.z = 0.0
         self.__servo_cf_spatial_pub.publish(w)
 
 
@@ -916,13 +916,13 @@ class arm(object):
 
     def servo_cf(self, force):
         "Apply a wrench with force only (body), torque is null"
-        w = Wrench()
-        w.force.x = force[0]
-        w.force.y = force[1]
-        w.force.z = force[2]
-        w.torque.x = 0.0
-        w.torque.y = 0.0
-        w.torque.z = 0.0
+        w = WrenchStamped()
+        w.wrench.force.x = force[0]
+        w.wrench.force.y = force[1]
+        w.wrench.force.z = force[2]
+        w.wrench.torque.x = 0.0
+        w.wrench.torque.y = 0.0
+        w.wrench.torque.z = 0.0
         self.__servo_cf_body_pub.publish(w)
 
 
@@ -943,3 +943,36 @@ class arm(object):
             pub.unregister()
         if verbose:
             print 'Unregistered {} pubs for {}'.format(self.__pub_list.__len__(), self.__arm_name)
+
+# to and from pose message
+def TransformFromMsg(t):
+    """
+    :param p: input pose
+    :type p: :class:`geometry_msgs.msg.Pose`
+    :return: New :class:`PyKDL.Frame` object
+
+    Convert a pose represented as a ROS Pose message to a :class:`PyKDL.Frame`.
+    """
+    return PyKDL.Frame(PyKDL.Rotation.Quaternion(t.rotation.x,
+                                     t.rotation.y,
+                                     t.rotation.z,
+                                     t.rotation.w),
+                 PyKDL.Vector(t.translation.x,
+                        t.translation.y,
+                        t.translation.z))
+
+def TransformToMsg(f):
+    """
+    :param f: input pose
+    :type f: :class:`PyKDL.Frame`
+
+    Return a ROS Pose message for the Frame f.
+
+    """
+    m = TransformStamped()
+    t = m.transform()
+    t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w = f.M.GetQuaternion()
+    t.translation.x = f.p[0]
+    t.translation.y = f.p[1]
+    t.translation.z = f.p[2]
+    return m

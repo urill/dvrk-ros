@@ -150,7 +150,7 @@ void dvrk::add_topics_arm(mtsROSBridge & bridge,
              ros_namespace + "/measured_cp");
         bridge.AddPublisherFromCommandRead<prmPositionCartesianGet, geometry_msgs::TransformStamped>
             (arm_component_name, "GetPositionCartesianDesired",
-             ros_namespace + "/measured_cp");
+             ros_namespace + "/servoed_cp");
         bridge.AddPublisherFromCommandRead<prmVelocityCartesianGet, geometry_msgs::TwistStamped>
             (arm_component_name, "GetVelocityCartesian",
              ros_namespace + "/measured_cv");
