@@ -44,8 +44,16 @@ dvrk::console::console(mtsROSBridge & bridge,
     for (armIter = mConsole->mArms.begin();
          armIter != armEnd;
          ++armIter) {
+
         const std::string name = armIter->first;
         const std::string armNameSpace = mNameSpace + "/" + name;
+
+        if (mConsole->mHasIO) {
+            dvrk::add_topics_io(bridge,
+                                armNameSpace + "/io/",
+                                name, mVersion);
+        }
+
         switch (armIter->second->mType) {
         case mtsIntuitiveResearchKitConsole::Arm::ARM_MTM:
         case mtsIntuitiveResearchKitConsole::Arm::ARM_MTM_DERIVED:
@@ -146,6 +154,7 @@ void dvrk::console::Configure(const std::string & jsonFile)
             dvrk::add_topics_io(*rosIOBridge,
                                 mNameSpace + "/" + name + "/io/",
                                 name, mVersion);
+            std::cout << "Fuck me " << name << std::endl;
             componentManager->AddComponent(rosIOBridge);
             mIOInterfaces.push_back(name);
         }
@@ -165,6 +174,11 @@ void dvrk::console::Connect(void)
          armIter != armEnd;
          ++armIter) {
         const std::string name = armIter->first;
+
+        if (mConsole->mHasIO) {
+            dvrk::connect_bridge_io(mBridgeName, mConsole->mIOComponentName, name);
+        }
+
         switch (armIter->second->mType) {
         case mtsIntuitiveResearchKitConsole::Arm::ARM_MTM:
         case mtsIntuitiveResearchKitConsole::Arm::ARM_MTM_DERIVED:
