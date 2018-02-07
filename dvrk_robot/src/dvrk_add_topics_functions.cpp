@@ -17,6 +17,7 @@ http://www.cisst.org/cisst/license.txt.
 */
 
 #include <dvrk_utilities/dvrk_add_topics_functions.h>
+#include <std_msgs/Int32MultiArray.h>
 
 
 void dvrk::add_topics_console(mtsROSBridge &bridge,
@@ -663,9 +664,25 @@ void dvrk::add_topics_io(mtsROSBridge &bridge,
     bridge.AddPublisherFromCommandRead<prmPositionJointGet, sensor_msgs::JointState>
             (arm_name + "-io", "GetPositionActuator",
              ros_namespace + "/actuator_position");
+
     bridge.AddPublisherFromCommandRead<vctDoubleVec, std_msgs::Float64MultiArray>
             (arm_name + "-io", "GetActuatorRequestedCurrent",
-             ros_namespace + "/requested_current");
+             ros_namespace + "/external/requested_current");
+    bridge.AddSubscriberToCommandWrite<vctIntVec, std_msgs::Int32MultiArray>
+            (arm_name + "-io", "IOSetEncoderPositionBits",
+             ros_namespace + "/external/encoder_position");
+    bridge.AddSubscriberToCommandWrite<vctIntVec, std_msgs::Int32MultiArray>
+            (arm_name + "-io", "IOSetEncoderVelocityBits",
+             ros_namespace + "/external/encoder_velocity");
+    bridge.AddSubscriberToCommandWrite<vctDoubleVec, std_msgs::Float64MultiArray>
+            (arm_name + "-io", "IOSetPotVoltage",
+             ros_namespace + "/external/pot_voltage");
+    bridge.AddSubscriberToCommandWrite<vctDoubleVec, std_msgs::Float64MultiArray>
+            (arm_name + "-io", "IOSetActuatorCurrentFeedback",
+             ros_namespace + "/external/current_feedback");
+    bridge.AddPublisherFromEventWrite<vctIntVec, std_msgs::Int32MultiArray>
+            (arm_name + "-io", "EncoderSetTo",
+            ros_namespace + "/external/encoder_position_set");
 }
 
 void dvrk::connect_bridge_io(mtsROSBridge &bridge,
