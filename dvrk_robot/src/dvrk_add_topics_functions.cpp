@@ -170,6 +170,9 @@ void dvrk::add_topics_arm(mtsROSBridge &bridge,
             bridge.AddPublisherFromCommandRead<vctDoubleMat, std_msgs::Float64MultiArray>
                     (arm_component_name, "GetJacobianSpatial",
                      ros_namespace + "/jacobian_spatial");
+            bridge.AddPublisherFromCommandRead<std::string, std_msgs::String>
+                    (arm_component_name, "GetRobotControlState",
+                     ros_namespace + "/control_mode");
             break;
     }
 
